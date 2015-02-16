@@ -1,0 +1,132 @@
+﻿<!DOCTYPE html>
+
+<html>
+<head>
+    <link href="/Content/jquery-ui.min.css" type="text/css" rel='stylesheet' />
+    <script src="/js/googleMapjs.js"></script>
+
+    <script src="/js/jquery-2.1.3.min.js"></script>
+    <script src="/js/jquery-ui.min.js"></script>
+  
+</head>
+
+<body>
+    <div id="googleMap" style="width:800px;height:580px;float:left"></div>
+    <div style="float:left">
+        <iframe style="overflow-x:hidden;overflow-y:auto;" src="http://cricket-app-hrd.appspot.com/" width="500" height="800" marginheight='0' frameborder="0" scrolling="yes"></iframe>
+
+    </div>
+    <div id="dialog" class="dialog" style="background-color:white"></div>
+    <script type="text/javascript">
+    var map;
+    var marker;
+    var jsondata = new Array();
+    $(document).ready(function () { 
+        var ajaxCall = $.ajax({
+            url: 'https://api.mongolab.com/api/1/databases/mongoplay/collections/WorldCup?q={"_id":{"$oid":"54d88e2ee4b04aad9bbdd809"}}&apiKey=zcYR-SlCCGKV8NziMBWJFzFBDoI_8Ncr'
+                              , type: 'GET'
+                              , contentType: 'json'
+                              , dataType: 'json'
+            , cache: false
+            ,async:false
+            //, traditional: true
+            //,data:addAgendaItem
+            //, data: JSON.stringify(addAgendaItem)
+                              , success: function (result) {
+                                  jsondata.push(result);
+                                  jsondata = jsondata[0][0];
+                              
+                              }
+        });
+        $.when(ajaxCall).done(google.maps.event.addDomListener(window, 'load', initialize));
+    })
+    
+
+
+    function initialize() {
+        var myLatlng = new google.maps.LatLng(-25.363882, 131.044922);
+        var mapProp = {
+            center: new google.maps.LatLng(-30.3080, 150.1245),
+            zoom: 4,
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+
+        };
+        $("#dialog").dialog({
+            autoOpen: false,
+            modal: true,
+            
+            height: 280
+});
+        map = new google.maps.Map(document.getElementById("googleMap"), mapProp);
+        if (jsondata != null) {
+            LoadMarker(map);
+        } else { LoadMarker(map) }
+    }
+    function LoadMarker(map)
+    {
+        $.ajax({
+            url: 'https://api.mongolab.com/api/1/databases/mongoplay/collections/WorldCup?q={"_id":{"$oid":"54d88deee4b04aad9bbdd805"}}&apiKey=zcYR-SlCCGKV8NziMBWJFzFBDoI_8Ncr'
+                    , type: 'GET'
+                    , contentType: 'json'
+                    , dataType: 'json'
+                  , cache: false
+            //, traditional: true
+            //,data:addAgendaItem
+            //, data: JSON.stringify(addAgendaItem)
+                    , success: function (result) {
+                        var markers = [];
+                        $.each(result[0].Country, function (index, element) {
+                            for (var i = 0; i < element.Cities.length; i++) {
+                                marker = new google.maps.Marker({
+                                    position: new google.maps.LatLng(element.Cities[i].Lat, element.Cities[i].Long),
+                                    map: map,
+                                    animation: google.maps.Animation.DROP,
+                                    title: element.Cities[i].Name,
+                                    icon: "/Content/pin.png"
+                                });
+                                //alert(jsondata.schedule[0].venue.city);
+                                markers.push(marker);
+                                marker.content = "";
+
+                                $.map(jsondata.schedule, function (obj) {
+                                    if (obj.venue.city == marker.title) {
+                                        obj.matchDate = obj.matchDate.substring(0, obj.matchDate.indexOf('+'));
+                                        obj.matchDate = obj.matchDate.substring(0, obj.matchDate.indexOf('T'));
+                                       
+                                        var dateFormat = $.datepicker.formatDate('MM dd, yy', new Date(obj.matchDate));
+                                        if (dateFormat >= $.datepicker.formatDate('MM dd, yy', new Date())) {
+                                        marker.content = marker.content + '<br \><div style="background:white">' + obj.team1.team.fullName + ' vs ' + obj.team2.team.fullName + '</div>' + '<div>' + dateFormat + '</div>';
+                                    }
+                                }
+                                });
+
+                                // newData.push({ "": "" }, {});
+                                //marker.setMap(map);
+                                //google.maps.event.addListener(marker, 'click', function () {
+                                //    $('#dialog').html('<strong>' + marker.title + '</strong><br \>' + this.content);
+                                //    var theDialog = $("#dialog").dialog("open");
+                                //});
+                            }
+                            var infowindow = null;
+
+                            /* now inside your initialise function */
+                            infowindow = new google.maps.InfoWindow({
+                                content: "holding..."
+                            });
+                            for (var i = 0; i < markers.length; i++) {
+                                var marker = markers[i];
+                                google.maps.event.addListener(marker, 'click', function () {
+                                    infowindow.setContent(this.content);
+                                    infowindow.open(map, this);
+                                });
+                            }
+                        });
+                    }
+        });
+    }
+   
+    </script>
+
+</body>
+
+</html>
